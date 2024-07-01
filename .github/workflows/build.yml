@@ -7,9 +7,8 @@ on:
 
 jobs:
   build:
-
+    name: Build CI
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -43,21 +42,29 @@ jobs:
           KEY_BASE64: ${{ secrets.KEY_BASE64 }}
         run: echo "$KEY_BASE64" | base64 --decode - > app/signature.jks
 
-      - name: Build APK
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: ./gradlew build
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
+  upload-telegram:
+    name: Upload Builds
+    if: ${{ success() }}
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: OwnDroid-CI-${{ env.SHORT_SHA }}-debug-signed.apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: OwnDroid-CI-${{ env.SHORT_SHA }}-release-signed.apk
-          path: app/build/outputs/apk/release/app-release.apk
+          path: artifacts
+      - name: Download telegram-bot-api-binary
+        run: |
+          mkdir ./binaries
+          wget "https://github.com/jakbin/telegram-bot-api-binary/releases/download/latest/telegram-bot-api" -O ./binaries/telegram-bot-api
+          chmod +x ./binaries/telegram-bot-api
+      - name: Start API Server & Upload
+        run: |
+          export DEBUG_TEST_PWD=$(find artifacts -name "*-debug-testkey*")
+          export RELEASE_TEST_PWD=$(find artifacts -name "*release-testkey*")
+          ./binaries/telegram-bot-api --api-id=${{ secrets.TELEGRAM_API_APP_ID }} --api-hash=${{ secrets.TELEGRAM_API_HASH }} --local 2>&1 > /dev/null &
+          echo $DEBUG_TEST_PWD
+          ls artifacts/
+          pwd
+          export token=${{ secrets.TELEGRAM_BOT_KEY }}
+          curl "http://127.0.0.1:8081/bot$token/sendMediaGroup?chat_id=-1002216379163&media=%5B%7B%22type%22%3A%22document%22%2C%22media%22%3A%22attach%3A%2F%2Ffile1%22%2C%22caption%22%3A%22File%201%22%7D%2C%7B%22type%22%3A%22document%22%2C%22media%22%3A%22attach%3A%2F%2Ffile2%22%2C%22caption%22%3A%22File%202%22%2C%22parse_mode%22%3A%22MarkdownV2%22%7D%5D" -F file1="@./$DEBUG_TEST_PWD" -F file2="@./$RELEASE_TEST_PWD" -v
