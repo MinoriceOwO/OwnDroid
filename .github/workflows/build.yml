@@ -64,9 +64,9 @@ jobs:
       - name: Start API Server & Upload
         run: |
           cd artifacts
-          export DEBUG_TEST_PWD=$(find artifacts -name "*-debug-testkey*")
+          export DEBUG_TEST_PWD=$(find . -name "*-debug-testkey*")
           mv ./$DEBUG_TEST_PWD/app-debug.apk ./$DEBUG_TEST_PWD.apk && rm -rf ./$DEBUG_TEST_PWD
-          export RELEASE_TEST_PWD=$(find artifacts -name "*release-testkey*")
+          export RELEASE_TEST_PWD=$(find . -name "*release-testkey*")
           mv ./$RELEASE_TEST_PWD/app-debug.apk ./$RELEASE_TEST_PWD.apk && rm -rf ./$RELEASE_TEST_PWD
           ../binaries/telegram-bot-api --api-id=${{ secrets.TELEGRAM_API_APP_ID }} --api-hash=${{ secrets.TELEGRAM_API_HASH }} --local 2>&1 > /dev/null &
           export token=${{ secrets.TELEGRAM_BOT_KEY }}
