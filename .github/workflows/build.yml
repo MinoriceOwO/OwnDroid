@@ -49,6 +49,8 @@ jobs:
     needs:
       - build
     steps:
+      - name: Upgrade Environment
+        run: sudo apt update && sudo apt upgrade -y
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -64,4 +66,4 @@ jobs:
           export RELEASE_TEST_PWD=$(find artifacts -name "*release-testkey*")
           ./binaries/telegram-bot-api --api-id=${{ secrets.TELEGRAM_API_APP_ID }} --api-hash=${{ secrets.TELEGRAM_API_HASH }} --local 2>&1 > /dev/null &
           export token=${{ secrets.TELEGRAM_BOT_KEY }}
-          curl "http://127.0.0.1:8081/bot$token/sendMediaGroup?chat_id=-1002216379163&media=%5B%7B%22type%22%3A%22document%22%2C%22media%22%3A%22attach%3A%2F%2Ffile1%22%2C%22caption%22%3A%22File%201%22%7D%2C%7B%22type%22%3A%22document%22%2C%22media%22%3A%22attach%3A%2F%2Ffile2%22%2C%22caption%22%3A%22File%202%22%2C%22parse_mode%22%3A%22MarkdownV2%22%7D%5D" -F file1="@./artifacts/*-debug-testkey.apk" -F file2="@./artifacts/*-release-testkey.apk" -v
+          curl "http://127.0.0.1:8081/bot$token/sendMediaGroup?chat_id=-1002216379163&media=%5B%7B%22type%22%3A%22document%22%2C%22media%22%3A%22attach%3A%2F%2Ffile1%22%2C%22caption%22%3A%22File%201%22%7D%2C%7B%22type%22%3A%22document%22%2C%22media%22%3A%22attach%3A%2F%2Ffile2%22%2C%22caption%22%3A%22File%202%22%2C%22parse_mode%22%3A%22MarkdownV2%22%7D%5D" -F file1="@$DEBUG_TEST_PWD" -F file2="@$RELEASE_TEST_PWD" -v
